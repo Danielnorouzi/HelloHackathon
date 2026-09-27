@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+/* Theme tokens: near-black background, one bright accent (electric lime). */
+@theme {
+  --color-bg: #0a0b0d;
+  --color-surface: #13151a;
+  --color-surface-2: #1b1e25;
+  --color-line: #272b34;
+  --color-muted: #8b93a3;
+  --color-accent: #c6ff3d;
+  --color-good: #4ade80;
+  --color-bad: #f87171;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background: var(--color-bg);
+  color: #e8eaee;
+  font-family: var(--font-sans);
+}
+
+/* Horizontal nav rows scroll on small screens without showing a scrollbar. */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

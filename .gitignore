@@ -216,3 +216,20 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- SoccerScout project ---
+# Secrets: never commit real keys (backend/.env.example is the template to copy)
+.env
+.env.*
+!.env.example
+# Python virtual environment and caches
+backend/.venv/
+.pytest_cache/
+# Frontend dependencies and build output
+frontend/node_modules/
+frontend/dist/
+# Generated data: the SQLite database (~0.9 GB, too large for GitHub; rebuild with the preload
+# script), API and AI caches, text-to-speech cache, reports. See README "Preload the data".
+backend/data/
+# Optional offline model files (npm run fetch-models)
+frontend/public/models/

@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+python-dotenv
+statsbombpy
+pandas
+numpy
+scikit-learn
+requests
+anthropic
+openai
+python-multipart
+pytest

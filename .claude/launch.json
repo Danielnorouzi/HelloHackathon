@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "backend",
+      "runtimeExecutable": "C:\Users\danyn\Downloads\soccer-scout\backend\.venv\Scripts\python.exe",
+      "runtimeArgs": ["-m", "uvicorn", "app.main:app", "--port", "8000", "--app-dir", "C:\Users\danyn\Downloads\soccer-scout\backend"],
+      "port": 8000
+    },
+    {
+      "name": "frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "C:\Users\danyn\Downloads\soccer-scout\frontend"],
+      "port": 5173
+    }
+  ]
+}

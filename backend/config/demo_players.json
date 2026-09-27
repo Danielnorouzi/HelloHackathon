@@ -1,0 +1,8 @@
+[
+  {"display_name": "Lionel Messi",    "statsbomb_id": 5503, "api_football_id": 154,  "birth_date": "1987-06-24", "team": "Barcelona / Argentina", "position_group": "FWD"},
+  {"display_name": "Kylian Mbappé",   "statsbomb_id": 3009, "api_football_id": 278,  "birth_date": "1998-12-20", "team": "France",                "position_group": "FWD"},
+  {"display_name": "Luka Modrić",     "statsbomb_id": 5463, "api_football_id": null, "birth_date": "1985-09-09", "team": "Real Madrid / Croatia", "position_group": "MID"},
+  {"display_name": "Andrés Iniesta",  "statsbomb_id": 5216, "api_football_id": null, "birth_date": "1984-05-11", "team": "Barcelona",             "position_group": "MID"},
+  {"display_name": "Sergio Busquets", "statsbomb_id": 5203, "api_football_id": null, "birth_date": "1988-07-16", "team": "Barcelona / Spain",     "position_group": "MID"},
+  {"display_name": "Gerard Piqué",    "statsbomb_id": 5213, "api_football_id": null, "birth_date": "1987-02-02", "team": "Barcelona / Spain",     "position_group": "DEF"}
+]

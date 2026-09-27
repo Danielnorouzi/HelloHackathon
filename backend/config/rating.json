@@ -1,0 +1,27 @@
+{
+  "_comment": "Player card config. Attribute = average percentile of its stats, mapped to scale_min..scale_max. Edit weights here, nowhere else.",
+  "scale_min": 40,
+  "scale_max": 99,
+  "attributes": {
+    "SHO": {"label": "Shooting", "stats": ["non_penalty_goals", "npxg", "shots_on_target_pct", "npxg_per_shot"]},
+    "PAS": {"label": "Passing", "stats": ["progressive_passes", "key_passes", "pass_completion_pct", "passes_into_box"]},
+    "DRI": {"label": "Dribbling", "stats": ["successful_dribbles", "dribble_success_pct", "progressive_carries", "touches_in_box"]},
+    "DEF": {"label": "Defending", "stats": ["tackles_won_padj", "interceptions_padj", "pressures_padj", "ball_recoveries_padj"]},
+    "PAC": {"label": "Pace", "stats": [], "unavailable": "N/A: requires tracking data"},
+    "PHY": {"label": "Physical", "stats": [], "unavailable": "N/A: requires tracking data"}
+  },
+  "ovr_weights": {
+    "FWD": {"SHO": 0.35, "DRI": 0.30, "PAS": 0.25, "DEF": 0.10},
+    "MID": {"SHO": 0.15, "DRI": 0.20, "PAS": 0.40, "DEF": 0.25},
+    "DEF": {"SHO": 0.05, "DRI": 0.15, "PAS": 0.30, "DEF": 0.50}
+  },
+  "confidence": {
+    "_comment": "confidence = tier cap x min(1, minutes / full_confidence_minutes) x share of stats available",
+    "full_confidence_minutes": 1800,
+    "tier_cap": {"1": 60, "2": 95},
+    "tier_reason": {
+      "1": "Aggregate stats only (API-Football): no event locations, so ratings are rough.",
+      "2": "Full StatsBomb event data. Capped at 95%: pace, physical output and off-ball work are not in event data."
+    }
+  }
+}

@@ -1,0 +1,163 @@
+{
+  "_comment": "Live Skills Coach rules. Shared by the browser (live cues) and the server (session summary), so thresholds live in one place. Distances are in leg lengths (hip to ankle, measured from the video), angles in degrees. Nothing here is a speed, power, distance in metres or accuracy.",
+  "confidence": {
+    "measurement_min": 0.55,
+    "pose_min": 0.6,
+    "ball_min": 0.5
+  },
+  "scheduler": {
+    "min_gap_ms": 6000,
+    "cooldown_ms": 20000,
+    "extended_cooldown_ms": 45000,
+    "extended_after": 3,
+    "confirm_window": 3,
+    "confirm_needed": 2,
+    "urgent_priority": 3,
+    "positive_cooldown_ms": 60000,
+    "tracking_cooldown_ms": 30000,
+    "pending_ttl_ms": 4000
+  },
+  "zones": {
+    "_comment": "Boot contact areas shown beside the camera view. A cue with 'zones' highlights them.",
+    "inside": "Inside of the foot",
+    "outside": "Outside of the foot",
+    "laces": "Laces (top of the foot)",
+    "sole": "Sole",
+    "toe": "Toe end",
+    "heel": "Heel"
+  },
+  "tracking": {
+    "_comment": "Order = which problem to mention first when several apply.",
+    "order": ["no_person", "dark", "feet_out", "facing_camera", "no_ball", "ball_not_at_contact", "ball_not_tracked", "low_pose", "not_enough_touches", "estimated_contact"],
+    "messages": {
+      "no_person": "I can't see you. Step back so your whole body is in the picture.",
+      "dark": "It's too dark for reliable tracking. Find more light.",
+      "feet_out": "Move the camera so your feet and the ball are in view.",
+      "facing_camera": "Turn side-on to the camera so I can see your standing foot next to the ball.",
+      "no_ball": "I can't see the ball. Keep it in the picture, on a plain background if you can.",
+      "ball_not_at_contact": "I lost the ball at the moment you struck it, so I won't judge your standing foot on that one.",
+      "ball_not_tracked": "I lost track of the ball for most of that run, so I can't judge your close control.",
+      "low_pose": "Parts of your body were hidden, so I'm not sure about that one.",
+      "not_enough_touches": "Not enough touches yet to compare your feet.",
+      "estimated_contact": "I couldn't see the exact moment of contact."
+    },
+    "labels": {
+      "no_person": "Player not visible",
+      "dark": "Too dark",
+      "feet_out": "Feet out of frame",
+      "facing_camera": "Camera not side-on",
+      "no_ball": "Ball not visible",
+      "ball_not_at_contact": "Ball not visible at contact",
+      "ball_not_tracked": "Ball tracked for too little of the run",
+      "low_pose": "Body partly hidden",
+      "not_enough_touches": "Too few touches",
+      "estimated_contact": "Contact moment estimated (ball not seen)",
+      "low_confidence": "Low tracking confidence"
+    }
+  },
+  "skills": {
+    "shooting": {
+      "label": "Shooting",
+      "attempt_noun": "shots",
+      "camera_view": "side",
+      "setup_tips": [
+        "Put the camera side-on to your run-up, 4–6 m away, at about knee to hip height.",
+        "Your whole body and the ball must stay in the picture, including the strike.",
+        "Use a well-lit spot and a ball that contrasts with the ground.",
+        "Strike into a net, wall or open space. Shot power and accuracy are not measured."
+      ],
+      "measurements": {
+        "plant_offset": {"label": "Standing foot vs ball", "unit": "leg", "good": [-0.3, 0.2],
+          "describe": {"negative": "behind the ball", "positive": "ahead of the ball"}},
+        "trunk_lean": {"label": "Body lean at contact", "unit": "deg", "good": [-5, 35],
+          "describe": {"negative": "leaning back", "positive": "leaning forward"}},
+        "backswing_knee": {"label": "Kicking-knee bend on the backswing", "unit": "deg", "good": [60, 170]},
+        "follow_through": {"label": "Follow-through height", "unit": "leg", "good": [0.5, 3.0]},
+        "support_knee": {"label": "Standing-knee bend at contact", "unit": "deg", "good": [8, 60]},
+        "foot_pitch": {"label": "Kicking foot pointing down at contact", "unit": "deg", "good": [15, 85],
+          "describe": {"negative": "toes up", "positive": "toes down"}}
+      },
+      "cues": [
+        {"key": "plant_behind", "measure": "plant_offset", "below": -0.3, "priority": 3,
+          "text": "Plant your standing foot level with the ball, not behind it.",
+          "alt": "Step your standing foot in beside the ball.",
+          "positive": "Better. Your standing foot was level with the ball."},
+        {"key": "leaning_back", "measure": "trunk_lean", "below": -5, "priority": 3,
+          "text": "Lean over the ball. Chest forward as you strike.",
+          "alt": "Stay over the ball. Don't lean back.",
+          "positive": "Good, you stayed over the ball that time."},
+        {"key": "plant_ahead", "measure": "plant_offset", "above": 0.2, "priority": 2,
+          "text": "Plant a little further back, right beside the ball.",
+          "alt": "Your standing foot went past the ball. Plant it beside it.",
+          "positive": "Nice, standing foot right beside the ball."},
+        {"key": "short_follow_through", "measure": "follow_through", "below": 0.5, "priority": 2,
+          "text": "Follow through. Let your kicking leg carry on toward the target.",
+          "alt": "Keep swinging through after you hit the ball.",
+          "positive": "Good follow-through."},
+        {"key": "short_backswing", "measure": "backswing_knee", "below": 60, "priority": 1,
+          "text": "Bend your kicking knee more on the backswing.",
+          "alt": "Draw the kicking leg back further before you swing.",
+          "positive": "Better backswing."},
+        {"key": "toes_up", "measure": "foot_pitch", "below": 15, "priority": 2, "zones": ["laces"],
+          "text": "Point your toes down and lock your ankle, so you strike through the ball with your laces.",
+          "alt": "Toes down, ankle firm, and hit it with your laces.",
+          "positive": "Good, toes down through the strike."},
+        {"key": "stiff_standing_leg", "measure": "support_knee", "below": 8, "priority": 1,
+          "text": "Soften your standing knee as you strike.",
+          "alt": "A little bend in the standing knee helps balance.",
+          "positive": "Good, relaxed standing knee."}
+      ]
+    },
+    "dribbling": {
+      "label": "Dribbling",
+      "attempt_noun": "runs",
+      "camera_view": "any",
+      "setup_tips": [
+        "Put the camera 5–8 m away so a few metres of your dribbling lane are in view.",
+        "Keep your whole body and the ball in the picture. Dribble across the view rather than toward the camera.",
+        "Use a well-lit spot and a ball that contrasts with the ground.",
+        "Each run is judged when you stop, or every 8 seconds if you keep going."
+      ],
+      "measurements": {
+        "close_control_pct": {"label": "Time with the ball close (within 1 leg length)", "unit": "pct", "good": [70, 100]},
+        "touch_rate": {"label": "Touches per second", "unit": "per_s", "good": [1.2, 6.0]},
+        "max_separation": {"label": "Furthest the ball got from your feet", "unit": "leg", "good": [0, 2.0]},
+        "knee_bend": {"label": "Average knee bend while dribbling", "unit": "deg", "good": [20, 100]},
+        "weak_foot_share": {"label": "Touches with your less-used foot", "unit": "pct", "good": [15, 50]},
+        "lost_control": {"label": "Times the ball got away", "unit": "count", "good": [0, 0]},
+        "heavy_touch_pct": {"label": "Heavy touches (ball ran more than 1.5 leg lengths away)", "unit": "pct", "good": [0, 30]},
+        "toe_touch_pct": {"label": "Touches with the toe end of the foot", "unit": "pct", "good": [0, 40]}
+      },
+      "cues": [
+        {"key": "ball_too_far", "measure": "close_control_pct", "below": 65, "priority": 3,
+          "text": "Keep the ball closer. Small, soft touches.",
+          "alt": "Ball's getting away from you. Shorter touches.",
+          "positive": "Much better, the ball stayed close."},
+        {"key": "lost_control", "measure": "lost_control", "above": 0, "priority": 3,
+          "text": "Ease off the pace a little and keep it under control.",
+          "alt": "Slow down slightly so the ball doesn't run away.",
+          "positive": "Good, full control that run."},
+        {"key": "heavy_touches", "measure": "heavy_touch_pct", "above": 30, "priority": 2, "zones": ["inside"],
+          "text": "Softer touches. Cushion the ball with the inside of your foot so it stays within a step.",
+          "alt": "Your touches are running away. Soften them with the inside of your foot.",
+          "positive": "Nice soft touches, the ball stayed within a step."},
+        {"key": "few_touches", "measure": "touch_rate", "below": 1.2, "priority": 2,
+          "text": "Touch the ball more often, every step or two.",
+          "alt": "More touches. Keep it on a short leash.",
+          "positive": "Nice touch rhythm."},
+        {"key": "upright", "measure": "knee_bend", "below": 20, "priority": 2,
+          "text": "Bend your knees and stay low over the ball.",
+          "alt": "Get lower. Knees bent, weight forward.",
+          "positive": "Good, nice and low."},
+        {"key": "toe_pokes", "measure": "toe_touch_pct", "above": 40, "priority": 1, "zones": ["inside", "outside"],
+          "text": "Guide the ball with the inside or outside of your foot rather than your toes, for more control.",
+          "alt": "Fewer toe pokes. Use the side of your foot.",
+          "positive": "Good, you're guiding it with the side of your foot."},
+        {"key": "one_foot", "measure": "weak_foot_share", "below": 15, "priority": 1,
+          "text": "Mix in some touches with your other foot.",
+          "alt": "Try using both feet.",
+          "positive": "Good, both feet involved."}
+      ]
+    }
+  }
+}

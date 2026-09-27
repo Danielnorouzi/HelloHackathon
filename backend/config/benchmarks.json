@@ -1,0 +1,421 @@
+{
+  "_comment": "Skill-test benchmarks: the result expected at each level [Beginner, Intermediate, Advanced, Elite] for each age group. These are rough coaching guides for a hackathon MVP, not validated norms. Scores: the level anchors below, interpolated between levels and extrapolated (clamped to 40-99) outside them.",
+  "levels": [
+    "Beginner",
+    "Intermediate",
+    "Advanced",
+    "Elite"
+  ],
+  "level_scores": [
+    50,
+    65,
+    78,
+    90
+  ],
+  "scale_min": 40,
+  "scale_max": 99,
+  "age_groups": [
+    {
+      "id": "U12",
+      "label": "Under 12",
+      "max_age": 11
+    },
+    {
+      "id": "U15",
+      "label": "12–14",
+      "max_age": 14
+    },
+    {
+      "id": "U18",
+      "label": "15–17",
+      "max_age": 17
+    },
+    {
+      "id": "Adult",
+      "label": "18+",
+      "max_age": 200
+    }
+  ],
+  "tests": [
+    {
+      "id": "wall_passes_right",
+      "name": "Wall passes (right foot)",
+      "unit": "passes",
+      "better": "higher",
+      "attribute": "PAS",
+      "max": 60,
+      "instructions": "Stand 3 m from a flat wall. For 30 seconds, pass against the wall using only your RIGHT foot (one or two touches). Count every clean return you control.",
+      "benchmarks": {
+        "U12": [
+          8,
+          12,
+          16,
+          20
+        ],
+        "U15": [
+          10,
+          15,
+          20,
+          25
+        ],
+        "U18": [
+          12,
+          17,
+          22,
+          27
+        ],
+        "Adult": [
+          12,
+          18,
+          23,
+          28
+        ]
+      },
+      "equipment": [
+        "ball",
+        "wall"
+      ]
+    },
+    {
+      "id": "wall_passes_left",
+      "name": "Wall passes (left foot)",
+      "unit": "passes",
+      "better": "higher",
+      "attribute": "PAS",
+      "max": 60,
+      "instructions": "Same as above, 3 m from the wall for 30 seconds, but using only your LEFT foot.",
+      "benchmarks": {
+        "U12": [
+          5,
+          9,
+          13,
+          18
+        ],
+        "U15": [
+          7,
+          12,
+          17,
+          22
+        ],
+        "U18": [
+          9,
+          14,
+          19,
+          25
+        ],
+        "Adult": [
+          9,
+          15,
+          20,
+          26
+        ]
+      },
+      "equipment": [
+        "ball",
+        "wall"
+      ]
+    },
+    {
+      "id": "weak_foot_hits",
+      "name": "Weak-foot target passes",
+      "unit": "hits out of 10",
+      "better": "higher",
+      "attribute": "PAS",
+      "max": 10,
+      "instructions": "Make a 1 m-wide gate with two cones, 10 m away. Take 10 passes with your WEAKER foot. Count how many roll through the gate.",
+      "benchmarks": {
+        "U12": [
+          2,
+          4,
+          6,
+          8
+        ],
+        "U15": [
+          3,
+          5,
+          7,
+          8
+        ],
+        "U18": [
+          3,
+          5,
+          7,
+          9
+        ],
+        "Adult": [
+          3,
+          5,
+          7,
+          9
+        ]
+      },
+      "equipment": [
+        "ball",
+        "cones"
+      ]
+    },
+    {
+      "id": "slalom_time",
+      "name": "Cone slalom dribble",
+      "unit": "seconds",
+      "better": "lower",
+      "attribute": "DRI",
+      "max": 60,
+      "instructions": "Put 6 cones in a straight line, 2 m apart, starting 2 m from a start line. Dribble in and out of every cone to the end and weave back to the start line. Time from first touch to crossing the line. Best of 2 tries.",
+      "benchmarks": {
+        "U12": [
+          17.0,
+          14.5,
+          12.5,
+          11.0
+        ],
+        "U15": [
+          15.5,
+          13.5,
+          11.8,
+          10.5
+        ],
+        "U18": [
+          14.5,
+          12.8,
+          11.2,
+          10.0
+        ],
+        "Adult": [
+          14.5,
+          12.5,
+          11.0,
+          9.8
+        ]
+      },
+      "equipment": [
+        "ball",
+        "cones"
+      ]
+    },
+    {
+      "id": "juggling",
+      "name": "Juggling",
+      "unit": "touches",
+      "better": "higher",
+      "attribute": "DRI",
+      "max": 5000,
+      "instructions": "Keep the ball up with any legal body part (no hands). Count touches before it hits the ground. Best of 3 tries.",
+      "benchmarks": {
+        "U12": [
+          10,
+          30,
+          80,
+          200
+        ],
+        "U15": [
+          20,
+          50,
+          150,
+          400
+        ],
+        "U18": [
+          25,
+          75,
+          200,
+          500
+        ],
+        "Adult": [
+          25,
+          75,
+          200,
+          500
+        ]
+      },
+      "equipment": [
+        "ball"
+      ]
+    },
+    {
+      "id": "sprint_10m",
+      "name": "10 m sprint",
+      "unit": "seconds",
+      "better": "lower",
+      "attribute": "PAC",
+      "max": 10,
+      "instructions": "From a standing start (front foot on the line), sprint 10 m. Have someone time from your first movement to crossing the 10 m line, or use a phone slow-motion video. Best of 2 tries.",
+      "benchmarks": {
+        "U12": [
+          2.35,
+          2.2,
+          2.08,
+          1.98
+        ],
+        "U15": [
+          2.2,
+          2.05,
+          1.93,
+          1.85
+        ],
+        "U18": [
+          2.1,
+          1.97,
+          1.86,
+          1.78
+        ],
+        "Adult": [
+          2.08,
+          1.95,
+          1.84,
+          1.75
+        ]
+      },
+      "equipment": [
+        "cones"
+      ]
+    },
+    {
+      "id": "sprint_30m",
+      "name": "30 m sprint",
+      "unit": "seconds",
+      "better": "lower",
+      "attribute": "PAC",
+      "max": 15,
+      "instructions": "Same standing start, sprint 30 m. Time to crossing the 30 m line. Best of 2 tries, with full rest in between.",
+      "benchmarks": {
+        "U12": [
+          5.6,
+          5.2,
+          4.9,
+          4.65
+        ],
+        "U15": [
+          5.2,
+          4.85,
+          4.55,
+          4.35
+        ],
+        "U18": [
+          4.95,
+          4.6,
+          4.35,
+          4.18
+        ],
+        "Adult": [
+          4.9,
+          4.55,
+          4.3,
+          4.12
+        ]
+      },
+      "equipment": [
+        "cones"
+      ]
+    },
+    {
+      "id": "shooting_accuracy",
+      "name": "Shooting accuracy",
+      "unit": "hits out of 10",
+      "better": "higher",
+      "attribute": "SHO",
+      "max": 10,
+      "instructions": "From the edge of the penalty area (about 16 m), take 10 shots. Only shots that go in the goal within 1 m of a post (the corner zones) count. Mark the zones with cones or bibs.",
+      "benchmarks": {
+        "U12": [
+          2,
+          4,
+          6,
+          7
+        ],
+        "U15": [
+          2,
+          4,
+          6,
+          8
+        ],
+        "U18": [
+          3,
+          5,
+          7,
+          8
+        ],
+        "Adult": [
+          3,
+          5,
+          7,
+          9
+        ]
+      },
+      "equipment": [
+        "ball",
+        "goal"
+      ]
+    }
+  ],
+  "attributes": {
+    "PAC": {
+      "label": "Pace",
+      "tests": [
+        "sprint_10m",
+        "sprint_30m"
+      ]
+    },
+    "SHO": {
+      "label": "Shooting",
+      "tests": [
+        "shooting_accuracy"
+      ]
+    },
+    "PAS": {
+      "label": "Passing",
+      "tests": [
+        "wall_passes_right",
+        "wall_passes_left",
+        "weak_foot_hits"
+      ]
+    },
+    "DRI": {
+      "label": "Dribbling",
+      "tests": [
+        "slalom_time",
+        "juggling"
+      ]
+    },
+    "DEF": {
+      "label": "Defending",
+      "tests": [],
+      "unavailable": "N/A: not covered by the skill tests"
+    },
+    "PHY": {
+      "label": "Physical",
+      "tests": [],
+      "unavailable": "N/A: not covered by the skill tests"
+    }
+  },
+  "ovr_weights": {
+    "FWD": {
+      "SHO": 0.3,
+      "DRI": 0.3,
+      "PAS": 0.2,
+      "PAC": 0.2
+    },
+    "MID": {
+      "SHO": 0.15,
+      "DRI": 0.25,
+      "PAS": 0.4,
+      "PAC": 0.2
+    },
+    "DEF": {
+      "SHO": 0.1,
+      "DRI": 0.15,
+      "PAS": 0.45,
+      "PAC": 0.3
+    }
+  },
+  "confidence": {
+    "cap": 70,
+    "reason": "Self-recorded skill tests (one session, no match data). Capped at 70%."
+  },
+  "equipment_options": [
+    "ball",
+    "cones",
+    "wall",
+    "goal",
+    "partner"
+  ]
+}

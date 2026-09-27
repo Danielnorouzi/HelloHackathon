@@ -1,0 +1,29 @@
+{
+  "_comment": "Archetype rules. A player matches when every condition holds. Stat keys use percentiles (0-100) vs the position pool; keys ending in _pct under 'zones' are raw shares of the player's actions. The AI explains matches; it never invents archetypes.",
+  "rules": [
+    {"name": "Inside forward / inverted winger", "groups": ["FWD", "MID"],
+     "min": {"progressive_carries": 70, "successful_dribbles": 70}, "zones_min": {"wide_reception_pct": 25}},
+    {"name": "Creative playmaker", "groups": ["FWD", "MID"],
+     "min": {"key_passes": 75, "passes_into_box": 75, "progressive_passes": 70}},
+    {"name": "Deep-lying playmaker", "groups": ["MID", "DEF"],
+     "min": {"passes_completed": 80, "pass_completion_pct": 70, "progressive_passes": 65}, "max": {"touches_in_box": 40}},
+    {"name": "Poacher / box striker", "groups": ["FWD"],
+     "min": {"touches_in_box": 75, "npxg": 75, "npxg_per_shot": 60}},
+    {"name": "Goal-scoring forward", "groups": ["FWD", "MID"],
+     "min": {"non_penalty_goals": 85, "shots": 80}},
+    {"name": "Ball carrier / dribbler", "groups": ["FWD", "MID", "DEF"],
+     "min": {"successful_dribbles": 85, "progressive_carries": 80}},
+    {"name": "Pressing forward", "groups": ["FWD"],
+     "min": {"pressures_padj": 70}},
+    {"name": "Ball-winning midfielder", "groups": ["MID"],
+     "min": {"tackles_won_padj": 70, "interceptions_padj": 60, "ball_recoveries_padj": 60}},
+    {"name": "Box-to-box midfielder", "groups": ["MID"],
+     "min": {"pressures_padj": 55, "progressive_carries": 55, "touches_in_box": 55}},
+    {"name": "Ball-playing defender", "groups": ["DEF"],
+     "min": {"progressive_passes": 70, "pass_completion_pct": 65}},
+    {"name": "Front-foot defender", "groups": ["DEF"],
+     "min": {"tackles_won_padj": 65, "pressures_padj": 65}},
+    {"name": "Attacking full-back", "groups": ["DEF"],
+     "min": {"passes_into_box": 60}, "zones_min": {"wide_reception_pct": 40}}
+  ]
+}

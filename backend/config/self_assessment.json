@@ -1,0 +1,27 @@
+{
+  "_comment": "Short self-assessment for attributes the skill tests don't cover. Answers are the player's own judgement: they are always labelled self-reported, never shown as measured, and not included in OVR. Option scores stay between 45 and 85 on the 40-99 card scale, because a self-rating can't establish elite or very low levels.",
+  "option_scores": [45, 55, 65, 75, 85],
+  "min_answers": 2,
+  "areas": {
+    "PHY": {"label": "Physical", "intro": "How your body copes with the physical side of a game."},
+    "DEF": {"label": "Defending", "intro": "How you defend in real games, not in drills."}
+  },
+  "questions": [
+    {"id": "stamina", "area": "PHY", "text": "How long can you keep playing at full match intensity before you need a breather?",
+     "options": ["Under 10 minutes", "10 to 20 minutes", "20 to 45 minutes", "About a full half", "A full match"]},
+    {"id": "strength", "area": "PHY", "text": "In shoulder-to-shoulder challenges, how often do you keep your balance and the ball?",
+     "options": ["Rarely", "Sometimes", "About half the time", "Usually", "Almost always"]},
+    {"id": "aerial", "area": "PHY", "text": "How often do you win headers and jumping challenges?",
+     "options": ["Rarely", "Sometimes", "About half the time", "Usually", "Almost always"]},
+    {"id": "recovery", "area": "PHY", "text": "After a hard sprint, how quickly are you ready to sprint again?",
+     "options": ["Need a long rest", "Need a minute or two", "About 30 seconds", "Within a few seconds", "Straight away"]},
+    {"id": "one_v_one", "area": "DEF", "text": "When an attacker runs at you one against one, how often do you stop them?",
+     "options": ["Rarely", "Sometimes", "About half the time", "Usually", "Almost always"]},
+    {"id": "tackling", "area": "DEF", "text": "How often do your tackles win the ball cleanly, without a foul?",
+     "options": ["Rarely", "Sometimes", "About half the time", "Usually", "Almost always"]},
+    {"id": "reading", "area": "DEF", "text": "How often do you read a pass early and step in to intercept it?",
+     "options": ["Rarely", "Sometimes", "About half the time", "Usually", "Almost always"]},
+    {"id": "pressing", "area": "DEF", "text": "When your team loses the ball, how quickly do you press or get back into position?",
+     "options": ["I usually jog back", "Sometimes quickly", "About half the time", "Usually quickly", "Always straight away"]}
+  ]
+}
