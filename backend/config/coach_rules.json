@@ -39,7 +39,8 @@
       "ball_not_tracked": "I lost track of the ball for most of that run, so I can't judge your close control.",
       "low_pose": "Parts of your body were hidden, so I'm not sure about that one.",
       "not_enough_touches": "Not enough touches yet to compare your feet.",
-      "estimated_contact": "I couldn't see the exact moment of contact."
+      "estimated_contact": "I couldn't see the exact moment of contact.",
+      "foot_unclear": "I couldn't see your kicking foot clearly at contact. Keep the camera side-on with your feet in view."
     },
     "labels": {
       "no_person": "Player not visible",
@@ -52,6 +53,7 @@
       "low_pose": "Body partly hidden",
       "not_enough_touches": "Too few touches",
       "estimated_contact": "Contact moment estimated (ball not seen)",
+      "foot_unclear": "Kicking foot not clear at contact",
       "low_confidence": "Low tracking confidence"
     }
   },
@@ -59,6 +61,25 @@
     "shooting": {
       "label": "Shooting",
       "attempt_noun": "shots",
+      "shot_types": {
+        "driven": {"label": "Driven shot", "zone": "laces",
+          "instruction": "Driven shots: strike with your laces. Toes down, ankle locked.",
+          "tip": "toes down and ankle locked"},
+        "placed": {"label": "Placed finish", "zone": "inside",
+          "instruction": "Placed finish: strike with the inside of your foot. Turn it out and keep the ankle firm.",
+          "tip": "turn your foot out and keep the ankle firm"},
+        "outside": {"label": "Outside-foot shot", "zone": "outside",
+          "instruction": "Outside-foot shot: strike with the outside of your foot. Point your toes slightly in.",
+          "tip": "point your toes slightly in and keep the ankle firm"}
+      },
+      "contact": {
+        "_comment": "Which part of the boot met the ball, from the kicking foot at contact. yaw = toes turned out (+) or in (-) relative to the kick direction, from 3D pose; pitch = toes pointing down (+). Estimates, withheld when the foot isn't clear.",
+        "inside_yaw": 45,
+        "outside_yaw": -35,
+        "laces_pitch": 10,
+        "toe_along": 0.9,
+        "window_s": 0.07
+      },
       "camera_view": "side",
       "setup_tips": [
         "Put the camera side-on to your run-up, 4–6 m away, at about knee to hip height.",
@@ -98,10 +119,6 @@
           "text": "Bend your kicking knee more on the backswing.",
           "alt": "Draw the kicking leg back further before you swing.",
           "positive": "Better backswing."},
-        {"key": "toes_up", "measure": "foot_pitch", "below": 15, "priority": 2, "zones": ["laces"],
-          "text": "Point your toes down and lock your ankle, so you strike through the ball with your laces.",
-          "alt": "Toes down, ankle firm, and hit it with your laces.",
-          "positive": "Good, toes down through the strike."},
         {"key": "stiff_standing_leg", "measure": "support_knee", "below": 8, "priority": 1,
           "text": "Soften your standing knee as you strike.",
           "alt": "A little bend in the standing knee helps balance.",

@@ -8,6 +8,7 @@ export const L = 240
 /** Build 33 landmarks from a few key points. vis / coreVis / legVis control visibility. */
 export function pose({ hipX, hipY = 400, lean = 0, left, right, vis = 0.95, coreVis = vis, shoulderVis = coreVis, legVis = vis, shoulderSpread = 6 }) {
   const lm = Array.from({ length: 33 }, () => ({ x: hipX, y: 300, v: vis }))
+  const feet = {}
   const put = (i, x, y, v) => { lm[i] = { x, y, v } }
   put(LM.lShoulder, hipX + lean - shoulderSpread, hipY - 150, shoulderVis)
   put(LM.rShoulder, hipX + lean + shoulderSpread, hipY - 150, shoulderVis)
@@ -17,13 +18,42 @@ export function pose({ hipX, hipY = 400, lean = 0, left, right, vis = 0.95, core
     const knee = p.knee ?? { x: (hipX + p.ankle.x) / 2 + 6, y: hipY + 120 }
     put(LM[`${side}Knee`], knee.x, knee.y, legVis)
     put(LM[`${side}Ankle`], p.ankle.x, p.ankle.y, legVis)
-    // Realistic foot: heel→toe about 0.27 leg lengths. p.pitch (deg) tilts it (+ = toes down).
+    // Realistic foot: heel→toe about 0.27 leg lengths. p.pitch (deg) tilts it (+ = toes down);
+    // p.yaw (deg) turns the toes out (+) or in (−), which foreshortens the foot in the side view.
     const pitch = ((p.pitch ?? 5) * Math.PI) / 180
-    const ux = Math.cos(pitch), uy = Math.sin(pitch)
+    const yaw = ((p.yaw ?? 0) * Math.PI) / 180
+    const ux = Math.cos(pitch) * Math.cos(yaw), uy = Math.sin(pitch)
     put(LM[`${side}Toe`], p.ankle.x + 48 * ux, p.ankle.y + 8 + 48 * uy, legVis)
     put(LM[`${side}Heel`], p.ankle.x - 16 * ux, p.ankle.y + 8 - 16 * uy, legVis)
+    feet[side === 'l' ? 'left' : 'right'] = { pitch, yaw }
   }
+  lm.world = worldLandmarks(lm, hipX, hipY, feet)
   return lm
+}
+
+/**
+ * 3D (world) landmarks in metres, like MediaPipe's: origin between the hips, y down, z depth.
+ * Side-on camera: the player's right hip is nearer the camera (z −), so "outward" for the right foot
+ * is −z and for the left foot +z. Each foot is rebuilt from its pitch and yaw.
+ */
+function worldLandmarks(lm, hipX, hipY, feet) {
+  const m = 0.9 / L
+  const world = lm.map((p) => ({ x: (p.x - hipX) * m, y: (p.y - hipY) * m, z: 0, v: p.v }))
+  world[LM.lHip].z = 0.1
+  world[LM.rHip].z = -0.1
+  for (const [side, k, outZ] of [['left', 'l', 1], ['right', 'r', -1]]) {
+    const f = feet[side]
+    if (!f) continue
+    const heel = world[LM[`${k}Heel`]]
+    const len = 0.25
+    world[LM[`${k}Toe`]] = {
+      x: heel.x + len * Math.cos(f.pitch) * Math.cos(f.yaw),
+      y: heel.y + len * Math.sin(f.pitch),
+      z: heel.z + outZ * len * Math.cos(f.pitch) * Math.sin(f.yaw),
+      v: heel.v,
+    }
+  }
+  return world
 }
 
 const lerp = (a, b, k) => a + (b - a) * k
@@ -33,12 +63,12 @@ const lerpP = (a, b, k) => ({ x: lerp(a.x, b.x, k), y: lerp(a.y, b.y, k) })
  * A right-footed shot. plantBehind = standing (left) ankle distance behind the ball in leg lengths.
  * Returns frames {t, lm, ball, quality}.
  */
-export function shotSequence({ plantBehind = 0.4, lean = 30, ballVisible = true, sideView = true, coreVis = 0.95, shoulderVis = coreVis, followHeight = 1.0, kickPitch = 40 } = {}) {
+export function shotSequence({ plantBehind = 0.4, lean = 30, ballVisible = true, sideView = true, coreVis = 0.95, shoulderVis = coreVis, followHeight = 1.0, kickPitch = 40, kickYaw = 0, footVis = 0.95, contactSideView = sideView, backswingBeforePlant = false } = {}) {
   const frames = []
   let t = 0
   const ballX = 800
   const ground = 640
-  const add = (lm, ball) => { frames.push({ t, lm, ball, quality: { sideView, pose: 0.95 } }); t += 1 / FPS }
+  const add = (lm, ball) => { frames.push({ t, lm, world: lm.world, ball, quality: { sideView, pose: 0.95 } }); t += 1 / FPS }
   const ballAt = (x, vx = 0) => (ballVisible ? { x, y: 630, r: 12, vx, vy: 0, conf: 0.9, detected: true } : null)
 
   // Setup: standing still, 0.5 s.
@@ -56,22 +86,29 @@ export function shotSequence({ plantBehind = 0.4, lean = 30, ballVisible = true,
   const rBack = { x: hipP - 90, y: 540 }
   for (let i = 1; i <= 6; i++) {
     const a = lerpP(r0, rBack, i / 6)
-    add(pose({ hipX: hipP, lean, left: { ankle: { x: plantX, y: ground } },
+    // Real run-ups often draw the kicking leg back while the standing foot is still landing.
+    const leftX = backswingBeforePlant ? plantX - 60 + i * 10 : plantX
+    add(pose({ hipX: hipP, lean, left: { ankle: { x: leftX, y: ground } },
       right: { ankle: a, knee: { x: hipP + 10, y: 515 } }, coreVis, shoulderVis }), ballAt(ballX))
   }
   // Forward swing: right ankle drives to the ball.
   const rHit = { x: ballX - 16, y: 628 }
   for (let i = 1; i <= 5; i++) {
     const a = lerpP(rBack, rHit, i / 5)
-    add(pose({ hipX: hipP, lean, left: { ankle: { x: plantX, y: ground } }, right: { ankle: a, pitch: kickPitch }, coreVis, shoulderVis }), ballAt(ballX))
+    const lm = pose({ hipX: hipP, lean, left: { ankle: { x: plantX, y: ground } }, right: { ankle: a, pitch: kickPitch, yaw: kickYaw }, coreVis, shoulderVis })
+    for (const i of [LM.rHeel, LM.rToe, LM.rAnkle]) lm[i].v = footVis
+    add(lm, ballAt(ballX))
   }
   // Contact + follow-through: ball launches, kicking leg rises to followHeight leg lengths.
   const rTop = { x: ballX + 120, y: ground - followHeight * L }
   for (let i = 1; i <= 24; i++) {
     const a = lerpP(rHit, rTop, Math.min(1, i / 8))
     const bx = ballX + i * 50
-    add(pose({ hipX: hipP + i * 2, lean, left: { ankle: { x: plantX, y: ground } }, right: { ankle: a, pitch: kickPitch }, coreVis, shoulderVis }),
-      bx < 1280 ? ballAt(bx, 1500) : null)
+    const lm = pose({ hipX: hipP + i * 2, lean, left: { ankle: { x: plantX, y: ground } }, right: { ankle: a, pitch: kickPitch, yaw: kickYaw }, coreVis, shoulderVis })
+    for (const j of [LM.rHeel, LM.rToe, LM.rAnkle]) lm[j].v = footVis
+    add(lm, bx < 1280 ? ballAt(bx, 1500) : null)
+    // At contact the shoulders open up; a side-on camera can then look "front-on" for a moment.
+    if (i <= 4) frames[frames.length - 1].quality = { sideView: contactSideView, pose: 0.95 }
   }
   // Recovery: stand still for 1.2 s.
   for (let i = 0; i < 36; i++) {

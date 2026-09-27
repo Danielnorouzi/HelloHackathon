@@ -84,13 +84,20 @@ export async function loadVision(video) {
   }
 }
 
-/** Pose landmarks in pixels ({x, y, v}) or null. */
+/**
+ * Pose: { lm: 2D landmarks in pixels ({x, y, v}), world: 3D landmarks in metres ({x, y, z, v}) } or null.
+ * The 3D landmarks tell which way the kicking foot points (used for the contact area).
+ */
 export function detectPose(pose, video, timestampMs) {
   const result = pose.detectForVideo(video, timestampMs)
   const lm = result.landmarks?.[0]
   if (!lm) return null
   const w = video.videoWidth, h = video.videoHeight
-  return lm.map((p) => ({ x: p.x * w, y: p.y * h, v: p.visibility ?? 0 }))
+  const world = result.worldLandmarks?.[0]
+  return {
+    lm: lm.map((p) => ({ x: p.x * w, y: p.y * h, v: p.visibility ?? 0 })),
+    world: world ? world.map((p, i) => ({ x: p.x, y: p.y, z: p.z, v: lm[i].visibility ?? 0 })) : null,
+  }
 }
 
 /**

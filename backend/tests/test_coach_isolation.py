@@ -111,3 +111,26 @@ def test_bad_input_is_rejected():
     bad = [{"measurements": {"plant_offset": {"value": 0.1, "conf": 7}}}]
     assert client.post("/api/coach/ask", data={"skill": "shooting", "question": "hi",
                                                "attempts_json": json.dumps(bad)}).status_code == 400
+
+
+def test_contact_area_is_stored_and_given_to_the_ai_coach(monkeypatch):
+    seen = {}
+
+    def fake_complete_text(system, user, model=None):
+        seen["user"] = user
+        return "Use your laces next time."
+    monkeypatch.setattr(llm, "complete_text", fake_complete_text)
+    attempts = [{"measurements": {}, "contact": {"zone": "toe", "target": "laces", "conf": 0.7}}]
+    client.post("/api/coach/ask", data={"skill": "shooting", "question": "What did I hit it with?",
+                                        "attempts_json": json.dumps(attempts)})
+    assert "Contact area (estimated): toe, target laces (not the target, confidence 70%)" in seen["user"]
+
+    sid = client.post("/api/coach/sessions", json={"skill": "shooting"}).json()["session_id"]
+    r = client.post(f"/api/coach/sessions/{sid}/end", json={"attempts": attempts * 2}).json()
+    assert r["contact"]["zones"] == {"toe": 2}
+    with coach_engine.connect() as conn:
+        stored = conn.execute(text("SELECT quality_json FROM coach_attempts WHERE session_id = :s"), {"s": sid}).fetchall()
+    assert all(json.loads(row[0])["contact"]["zone"] == "toe" for row in stored)
+
+    bad = [{"measurements": {}, "contact": {"zone": "heel", "target": "laces", "conf": 0.7}}]
+    assert client.post(f"/api/coach/sessions/{sid}/end", json={"attempts": bad}).status_code == 422

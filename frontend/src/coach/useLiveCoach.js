@@ -12,6 +12,7 @@ import { evaluateAttempt } from './rules'
 import { createVoice, recordQuestion } from './voice'
 import { drawOverlay } from './overlay'
 import { createBallAlert, isBallAlert, playChime } from './alerts'
+import { contactStats, createContactCoach } from './contact'
 
 let visionPromise = null   // models are loaded (and benchmarked) once per page, then reused
 const getVision = (video) => (visionPromise ??= loadVision(video).catch((e) => { visionPromise = null; throw e }))
@@ -53,7 +54,10 @@ async function playWhenVisible(video, onWaiting) {
 }
 
 /** Attempts in the shape the server accepts (numbers only). */
-const forServer = (attempts) => attempts.map((a) => ({ measurements: a.measurements, quality: a.quality }))
+const forServer = (attempts) => attempts.map((a) => ({
+  measurements: a.measurements, quality: a.quality,
+  ...(a.contact ? { contact: { zone: a.contact.zone ?? null, target: a.contact.target ?? null, conf: a.contact.conf ?? 0, reason: a.contact.reason ?? null } } : {}),
+}))
 
 export default function useLiveCoach() {
   const videoRef = useRef(null)
@@ -99,6 +103,8 @@ export default function useLiveCoach() {
 
   // Boot zones to highlight: set by a cue about where to contact the ball, cleared after a while.
   const [zoneCue, setZoneCue] = useState(null)
+  // Shooting: the latest shot's contact area vs the target ({ target, detected, status, conf }).
+  const [lastContact, setLastContact] = useState(null)
   const zoneTimer = useRef(null)
 
   const say = useCallback((cue) => {
@@ -129,12 +135,13 @@ export default function useLiveCoach() {
 
   useEffect(() => () => stopLoop(), [stopLoop])
 
-  const start = useCallback(async ({ skill, kickingFoot = 'auto', file = null }) => {
+  const start = useCallback(async ({ skill, kickingFoot = 'auto', shotType = 'driven', file = null }) => {
     setError(null)
     setSummary(null)
     setAttempts([])
     setCues([])
     setChat([])
+    setLastContact(null)
     setStatus('loading')
     const video = videoRef.current
     let stream = null
@@ -172,8 +179,13 @@ export default function useLiveCoach() {
         lastTs: 0, lastUi: 0, lastLumaAt: 0, lumaValue: null, frames: 0, fpsSince: performance.now(), fps: 0,
         poseMs: vision.info.poseMs, ballMs: vision.info.ballMs, frameNo: 0,
         trail: [], issueSince: {}, attempts: [], ballAlert: createBallAlert(),
+        contactCoach: skill === 'shooting' ? createContactCoach(RULES, shotType) : null,
       }
       setStatus('running')
+      // Say which part of the boot to strike with before the first shot.
+      if (loop.current.contactCoach) {
+        say({ key: 'instruction', kind: 'instruction', text: loop.current.contactCoach.instruction, zones: [loop.current.contactCoach.target] })
+      }
       scheduleFrame()
     } catch (e) {
       stream?.getTracks().forEach((t) => t.stop())
@@ -206,12 +218,13 @@ export default function useLiveCoach() {
     const t = ts / 1000
     const width = video.videoWidth, height = video.videoHeight
 
-    let lm = null, ball = null, roi = null
+    let lm = null, world = null, ball = null, roi = null
     try {
       let t0 = performance.now()
       const raw = detectPose(l.vision.pose, video, ts)
       l.poseMs = 0.8 * l.poseMs + 0.2 * (performance.now() - t0)
-      lm = raw ? l.smoother.smooth(raw, t) : null
+      lm = raw ? l.smoother.smooth(raw.lm, t) : null
+      world = raw?.world ?? null
       const b = lm ? body(lm) : null
       const legLength = b ? l.legs.update(b.legLength) : null
       roi = feetRoi(b, legLength, width, height)
@@ -234,10 +247,17 @@ export default function useLiveCoach() {
     const quality = frameQuality({ lm, ball, width, height, luma: l.lumaValue, skill: l.skill, rules: RULES })
 
     // Skill phases → attempts → rules → cue.
-    const out = l.detector.update({ t, lm, ball, quality })
+    const out = l.detector.update({ t, lm, world, ball, quality })
     if (out.attempt) {
       const attempt = { ...out.attempt, at: Date.now() }
-      const { result, cue } = l.scheduler.onAttempt(attempt, nowMs)
+      // Shooting: which part of the boot met the ball, against the target for this shot type.
+      const contactFb = l.contactCoach && out.attempt.skill === 'shooting' ? l.contactCoach.assess(out.attempt.contact) : null
+      if (contactFb) {
+        attempt.contact = { ...(attempt.contact ?? {}), target: contactFb.target, status: contactFb.status }
+        attempt.contactFeedback = contactFb
+        setLastContact(contactFb)
+      }
+      const { result, cue } = l.scheduler.onAttempt(attempt, nowMs, contactFb)
       attempt.result = result
       l.attempts.push(attempt)
       setAttempts([...l.attempts])
@@ -345,7 +365,8 @@ export default function useLiveCoach() {
   }, [ask])
 
   return {
-    videoRef, canvasRef, status, error, live, attempts, cues, banner, summary, capabilities, chat, voiceState, zoneCue,
+    videoRef, canvasRef, status, error, live, attempts, cues, banner, summary, capabilities, chat, voiceState, zoneCue, lastContact,
+    contactTarget: loop.current?.contactCoach?.target ?? null,
     footSide: footSideOf(attempts),
     start, end, ask, startRecording, stopRecording,
     setSoundEnabled: (on) => { mutedRef.current = !on; voiceRef.current?.setEnabled(on) },
@@ -379,6 +400,7 @@ function localSummary(skill, attempts) {
     narrative: null,
     drills: [],
     drills_note: 'Drill suggestions need the server. Reconnect and try another session.',
+    contact: contactStats(attempts),
   }
 }
 

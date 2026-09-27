@@ -4,7 +4,6 @@ import rules from '../../../../backend/config/coach_rules.json'
 import { createShootingDetector } from '../skills/shooting'
 import { createDribblingDetector } from '../skills/dribbling'
 import { evaluateAttempt } from '../rules'
-import { createCueScheduler } from '../feedback'
 import { alongFoot, footPitch } from '../geometry'
 import { dribbleSequence, run, shotSequence } from './synthetic'
 
@@ -28,20 +27,9 @@ describe('shooting: kicking-foot angle', () => {
     expect(evaluateAttempt('shooting', a.measurements, rules).corrections.map((c) => c.key)).not.toContain('toes_up')
   })
 
-  it('toes up at contact gives the laces cue, with the laces zone to highlight', () => {
-    const [a] = run(createShootingDetector({ rules }), shotSequence({ kickPitch: -10 })).attempts
-    const toes = evaluateAttempt('shooting', a.measurements, rules).corrections.find((c) => c.key === 'toes_up')
-    expect(toes.zones).toEqual(['laces'])
-    const scheduler = createCueScheduler(rules, 'shooting')
-    scheduler.onAttempt({ measurements: { foot_pitch: a.measurements.foot_pitch } }, 0)
-    const { cue } = scheduler.onAttempt({ measurements: { foot_pitch: a.measurements.foot_pitch } }, 10000)   // priority 2: needs a repeat
-    expect(cue).toMatchObject({ key: 'toes_up', zones: ['laces'] })
-  })
-
   it('facing the camera: the foot angle is withheld, not guessed', () => {
     const [a] = run(createShootingDetector({ rules }), shotSequence({ sideView: false, kickPitch: -10 })).attempts
     expect(a.measurements.foot_pitch).toMatchObject({ value: null, reason: 'facing_camera' })
-    expect(evaluateAttempt('shooting', a.measurements, rules).corrections.map((c) => c.key)).not.toContain('toes_up')
   })
 })
 

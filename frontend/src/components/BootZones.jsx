@@ -14,11 +14,20 @@ const ZONES = [
 ]
 const SHORT = { toe: 'Toe', inside: 'Inside', laces: 'Laces', outside: 'Outside', heel: 'Heel', sole: 'Sole' }
 
-export default function BootZones({ zones = [], foot = 'right', cueText = null }) {
+const GOOD = '#4ade80'
+const WRONG = '#fb923c'
+
+/**
+ * zones: areas a coach cue is about (accent). target: the area to strike with (dashed outline).
+ * last: the latest shot's contact { detected, status: 'correct' | 'incorrect' | 'unclear' } (green / orange).
+ */
+export default function BootZones({ zones = [], foot = 'right', cueText = null, target = null, last = null }) {
   const lit = new Set(zones)
+  const hit = new Set(last?.detected === 'side' ? ['inside', 'outside'] : last?.detected ? [last.detected] : [])
+  const hitColor = last?.status === 'correct' ? GOOD : WRONG
   const mirror = foot === 'left'
-  const fill = (id) => (lit.has(id) ? '#c6ff3d' : '#1b1e25')
-  const labelColor = (id) => (lit.has(id) ? '#0a0b0d' : '#8b93a3')
+  const fill = (id) => (hit.has(id) ? hitColor : lit.has(id) ? '#c6ff3d' : '#1b1e25')
+  const labelColor = (id) => (hit.has(id) || lit.has(id) ? '#0a0b0d' : '#8b93a3')
   return (
     <div>
       <svg viewBox="0 0 320 300" className="w-full h-auto" role="img"
@@ -31,7 +40,11 @@ export default function BootZones({ zones = [], foot = 'right', cueText = null }
           <g clipPath="url(#boot-clip)">
             {ZONES.map((z) => (
               <rect key={z.id} x={z.x} y={z.y} width={z.w} height={z.h} fill={fill(z.id)}
-                stroke="#343a46" strokeWidth="1.5" className={lit.has(z.id) ? 'animate-pulse' : ''} />
+                stroke="#343a46" strokeWidth="1.5" className={lit.has(z.id) && !hit.has(z.id) ? 'animate-pulse' : ''} />
+            ))}
+            {ZONES.filter((z) => z.id === target).map((z) => (
+              <rect key="target" x={z.x + 3} y={z.y + 3} width={z.w - 6} height={z.h - 6} fill="none"
+                stroke="#ffffff" strokeWidth="3" strokeDasharray="8 6" />
             ))}
             {/* laces */}
             {[84, 101, 118, 135, 152].map((y) => (
@@ -50,7 +63,8 @@ export default function BootZones({ zones = [], foot = 'right', cueText = null }
         })}
         {/* Sole view */}
         <g transform="translate(212,60) scale(0.52)">
-          <path d={BOOT} fill={fill('sole')} stroke="#e8eaee" strokeWidth="4" className={lit.has('sole') ? 'animate-pulse' : ''} />
+          <path d={BOOT} fill={fill('sole')} stroke={target === 'sole' ? '#ffffff' : '#e8eaee'} strokeWidth={target === 'sole' ? 8 : 4}
+            strokeDasharray={target === 'sole' ? '14 10' : undefined} className={lit.has('sole') && !hit.has('sole') ? 'animate-pulse' : ''} />
           {[[80, 60], [120, 60], [70, 110], [130, 110], [100, 150], [80, 245], [120, 245]].map(([x, y]) => (
             <circle key={`${x}-${y}`} cx={x} cy={y} r="9" fill={lit.has('sole') ? '#0a0b0d' : '#343a46'} />
           ))}
@@ -58,11 +72,24 @@ export default function BootZones({ zones = [], foot = 'right', cueText = null }
         <text x="264" y="236" fontSize="13" fontWeight="600" textAnchor="middle" fill={labelColor('sole') === '#0a0b0d' ? '#c6ff3d' : '#8b93a3'}>Sole</text>
         <text x="100" y="298" fontSize="11" textAnchor="middle" fill="#8b93a3">{foot === 'left' ? 'Left' : 'Right'} boot, from above</text>
       </svg>
-      <p className="text-xs mt-2 min-h-8">
-        {lit.size
-          ? <span className="text-accent font-semibold">Strike with: {[...lit].map((z) => RULES.zones[z] ?? SHORT[z]).join(' or ')}.{cueText ? ` ${cueText}` : ''}</span>
-          : <span className="text-muted">When a hint is about where to contact the ball, that part of the boot lights up.</span>}
-      </p>
+      <div className="text-xs mt-2 min-h-8 space-y-1">
+        {target && <p><span className="text-muted">Target (dashed): </span><span className="text-white font-semibold">{RULES.zones[target] ?? SHORT[target]}</span></p>}
+        {last && (
+          <p>
+            <span className="text-muted">Last shot: </span>
+            {last.status === 'unclear'
+              ? <span className="text-yellow-300">couldn't tell which part of the foot (not judged)</span>
+              : <span style={{ color: hitColor }} className="font-semibold">
+                  {last.status === 'correct' ? '✓ ' : '✗ '}{RULES.zones[last.detected] ?? 'Side of the foot'}
+                  {last.status === 'correct' ? ' (correct)' : ' (not the target)'}
+                </span>}
+            {last.status !== 'unclear' && <span className="text-muted"> · {Math.round((last.conf ?? 0) * 100)}% confidence, estimated</span>}
+          </p>
+        )}
+        {!target && !last && (lit.size
+          ? <p className="text-accent font-semibold">Strike with: {[...lit].map((z) => RULES.zones[z] ?? SHORT[z]).join(' or ')}.{cueText ? ` ${cueText}` : ''}</p>
+          : <p className="text-muted">When a hint is about where to contact the ball, that part of the boot lights up.</p>)}
+      </div>
     </div>
   )
 }

@@ -14,6 +14,38 @@ from app.coach import rules as coach_rules
 from app.settings import CONFIG_DIR
 
 MAX_DRILLS = 2
+ZONE_PHRASES = {"laces": "your laces", "inside": "the inside of your foot", "outside": "the outside of your foot",
+                "toe": "your toe", "side": "the side of your foot"}
+
+
+def contact_summary(attempts: list[dict], noun: str) -> tuple[dict | None, list, list, list]:
+    """Contact area vs target over the session: (section, strengths, corrections, limitations)."""
+    shots = [a["contact"] for a in attempts if a.get("contact") and a["contact"].get("target")]
+    if not shots:
+        return None, [], [], []
+    min_conf = coach_rules.rules()["confidence"]["measurement_min"]
+    target = Counter(c["target"] for c in shots).most_common(1)[0][0]
+    # "side" (2D only) can't separate inside from outside, so it isn't judged against those targets.
+    judged = [c for c in shots if c.get("zone") and (c.get("conf") or 0) >= min_conf
+              and not (c["zone"] == "side" and c["target"] != "laces")]
+    zones = Counter(c["zone"] for c in judged)
+    correct = sum(c["zone"] == c["target"] for c in judged)
+    wrong = len(judged) - correct
+    section = {"target": target, "shots": len(shots), "judged": len(judged), "correct": correct, "zones": dict(zones)}
+    strengths, corrections, limitations = [], [], []
+    if len(judged) >= 2 and correct / len(judged) >= 0.6:
+        strengths.append({"measure": "contact_area", "label": "Contact area",
+                          "text": f"Contact area: struck with {ZONE_PHRASES[target]} on {correct} of {len(judged)} judged {noun}."})
+    if wrong >= 2 or (len(attempts) <= 3 and wrong >= 1):
+        used = ", ".join(f"{ZONE_PHRASES[z]} on {n}" for z, n in zones.most_common() if z != target and n)
+        corrections.append({"key": f"contact_{target}", "measure": None, "label": "Contact area", "priority": 4, "count": wrong,
+                            "text": f"Strike with {ZONE_PHRASES[target]}.",
+                            "evidence": f"Missed the target area on {wrong} of {len(judged)} judged {noun} (used {used})."})
+    unjudged = len(shots) - len(judged)
+    if unjudged:
+        limitations.append(f"Contact area not judged on {unjudged} of {len(shots)} {noun} "
+                           f"(kicking foot not clear at contact). The area is an estimate from one camera.")
+    return section, strengths, corrections, limitations
 
 
 @lru_cache(maxsize=1)
@@ -31,8 +63,8 @@ def suggest_drills(corrections: list[dict], defs: dict, tracking_limited: bool) 
         if not drill or drill["name"] in names:
             continue
         names.add(drill["name"])
-        chosen.append({**drill, "for": c["key"],
-                       "because": f"{defs[c['measure']]['label']}: {c['evidence']}"})
+        label = defs[c["measure"]]["label"] if c.get("measure") in defs else c.get("label", "Observed")
+        chosen.append({**drill, "for": c["key"], "because": f"{label}: {c['evidence']}"})
         if len(chosen) == MAX_DRILLS:
             break
     if chosen:
@@ -127,6 +159,10 @@ def summarize(skill: str, attempts: list[dict]) -> dict:
         limitations.append(f"No complete {noun} were detected. Check the camera setup tips and try again.")
     limitations.append(NOT_MEASURED[skill])
 
+    contact, c_strengths, c_corrections, c_limitations = contact_summary(attempts, noun)
+    strengths = c_strengths + strengths
+    corrections = sorted(c_corrections + corrections, key=lambda c: (-c["priority"], -c["count"]))
+    limitations = c_limitations + limitations
     drills, drills_note = suggest_drills(corrections, defs, tracking_limited=bool(reason_attempts) or n == 0)
     return {
         "skill": skill,
@@ -136,4 +172,5 @@ def summarize(skill: str, attempts: list[dict]) -> dict:
         "limitations": limitations,
         "drills": drills,
         "drills_note": drills_note,
+        "contact": contact,
     }

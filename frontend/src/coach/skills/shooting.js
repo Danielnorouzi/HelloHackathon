@@ -13,11 +13,15 @@
 //   support_knee   standing-knee bend at contact, degrees
 //   backswing_knee max kicking-knee bend between plant and contact, degrees
 //   follow_through peak height of the kicking ankle above the ground after contact, leg lengths
+// Each attempt also carries `contact`: which part of the boot met the ball (laces / inside / outside / toe),
+// estimated from the kicking foot around contact (see coach/contact.js), with a confidence.
+// Side-on is judged from the run-up (before the kick rotates the shoulders), not at contact.
 //   foot_pitch     kicking foot (heel→toe) angle below horizontal at contact, degrees (+ = toes down,
 //                  as for a laces strike); needs a side view and a clearly visible, not foreshortened foot
 // Ball speed, power and accuracy are never estimated.
 import { body, LegLength } from '../tracking'
 import { dist, footPitch, leanFromVertical, median, minVis, sign } from '../geometry'
+import { estimateContact } from '../contact'
 
 export const SHOT = {
   APPROACH_SPEED: 0.5,      // hip speed toward the ball, leg lengths / s
@@ -36,6 +40,8 @@ export const SHOT = {
   RECOVERY_TIMEOUT: 2.5,
   POSE_LOST_TIMEOUT: 0.6,
   MIN_FOOT_LENGTH: 0.15,    // heel→toe in leg lengths; shorter = foot turned toward the camera
+  BACKSWING_LOOKBACK: 0.6,  // the leg is drawn back mostly BEFORE the standing foot lands
+  SIDE_LOOKBACK: 1.2,       // judge side-on from this much run-up before the plant
 }
 
 const SIDES = ['left', 'right']
@@ -43,6 +49,7 @@ const other = (s) => (s === 'left' ? 'right' : 'left')
 
 export function createShootingDetector({ rules, kickingFoot = 'auto' }) {
   const minConf = rules.confidence.measurement_min
+  const contactCfg = rules.skills.shooting.contact
   const legLength = new LegLength()
   let phase = 'setup'
   let phaseStart = 0
@@ -56,6 +63,7 @@ export function createShootingDetector({ rules, kickingFoot = 'auto' }) {
   let index = 0
   let stillSince = null
   let ballHistory = []     // recent confident ball positions (for the ball position at contact)
+  let recent = []          // last second of derived frames (backswing look-back, contact window)
 
   const setPhase = (p, t) => { phase = p; phaseStart = t }
   const reset = (t) => { setPhase('setup', t); plant = contact = follow = null; approachSince = null; dir = 0 }
@@ -64,7 +72,7 @@ export function createShootingDetector({ rules, kickingFoot = 'auto' }) {
     const b = body(frame.lm)
     const L = legLength.update(b.legLength)
     if (!L) return null
-    const d = { t: frame.t, b, L, ball: frame.ball, quality: frame.quality, speed: {}, hipVx: 0 }
+    const d = { t: frame.t, b, L, ball: frame.ball, quality: frame.quality, world: frame.world ?? null, speed: {}, hipVx: 0 }
     if (prev && frame.t > prev.t) {
       const dt = frame.t - prev.t
       for (const s of SIDES) {
@@ -91,7 +99,14 @@ export function createShootingDetector({ rules, kickingFoot = 'auto' }) {
         : true
       if (still && swinging && nearBall) {
         if (!dir) dir = d.ball ? sign(d.ball.x - d.b.hip.x) || 1 : sign(d.hipVx) || 1
-        plant = { t: d.t, support, kick, maxKneeFlex: d.b.kneeFlex[kick], kickVis: [minVis(d.b[kick].hip, d.b[kick].knee, d.b[kick].ankle)],
+        // Backswing: the kicking leg is drawn back mostly before the plant, so look back a little.
+        const before = recent.filter((f) => d.t - f.t <= SHOT.BACKSWING_LOOKBACK)
+        const kneeFlex = [d, ...before].map((f) => f.b.kneeFlex[kick])
+        const kickVis = [d, ...before].map((f) => minVis(f.b[kick].hip, f.b[kick].knee, f.b[kick].ankle))
+        // Side-on: majority of the run-up frames (at contact the shoulders open up and look front-on).
+        const votes = recent.filter((f) => d.t - f.t <= SHOT.SIDE_LOOKBACK && f.quality?.sideView != null).map((f) => f.quality.sideView)
+        const sideView = votes.length ? votes.filter(Boolean).length >= votes.length / 2 : d.quality?.sideView ?? null
+        plant = { t: d.t, support, kick, maxKneeFlex: Math.max(...kneeFlex), kickVis, sideView,
           minToeBall: Infinity, nearestFrame: null, peakKickSpeed: 0, peakFrame: null }
         setPhase('plant', d.t)
         return true
@@ -114,9 +129,9 @@ export function createShootingDetector({ rules, kickingFoot = 'auto' }) {
     }
 
     // Ball position just before contact (the ball is still then, so this is the most reliable fix).
-    const recent = ballHistory.filter((p) => p.t <= c.t + 0.05 && p.t >= c.t - 0.4)
-    const ballAt = recent.length ? { x: median(recent.map((p) => p.x)), conf: median(recent.map((p) => p.conf)) } : null
-    const side = c.quality?.sideView
+    const nearBall = ballHistory.filter((p) => p.t <= c.t + 0.05 && p.t >= c.t - 0.4)
+    const ballAt = nearBall.length ? { x: median(nearBall.map((p) => p.x)), y: median(nearBall.map((p) => p.y)), conf: median(nearBall.map((p) => p.conf)) } : null
+    const side = plant.sideView ?? c.quality?.sideView
     if (!ballAt) put('plant_offset', null, 0, 'ball_not_at_contact')
     else {
       const conf = Math.min(b[support].ankle.v, ballAt.conf) * (side === false ? 0.4 : 1)
@@ -134,7 +149,15 @@ export function createShootingDetector({ rules, kickingFoot = 'auto' }) {
     let footConf = minVis(kf.heel, kf.toe, kf.ankle) * poseFactor * (side === false ? 0.4 : 1)
     if (footLen < SHOT.MIN_FOOT_LENGTH) footConf *= 0.5
     put('foot_pitch', footPitch(kf.heel, kf.toe), footConf, side === false ? 'facing_camera' : poseReason)
-    return { measurements: m, ballAt }
+
+    // Which part of the boot met the ball (frames just around contact).
+    const w = contactCfg.window_s
+    const contact = estimateContact({
+      frames: recent.filter((f) => Math.abs(f.t - c.t) <= w), kick: plant.kick, dir, ballAt,
+      thresholds: contactCfg, minConf, minFootLength: SHOT.MIN_FOOT_LENGTH,
+      penalty: (estimated ? 0.85 : 1) * (side === false ? 0.7 : 1),
+    })
+    return { measurements: m, ballAt, contact }
   }
 
   function finishAttempt() {
@@ -156,8 +179,8 @@ export function createShootingDetector({ rules, kickingFoot = 'auto' }) {
     index += 1
     return {
       skill: 'shooting', index, t: contact.t, kicking_foot: kick, support_foot: support,
-      contact_source: contact.source, measurements: m, ball_path: ballPath,
-      quality: { pose: +contact.b.vis.legs.toFixed(2), ball: +(contact.ballAt?.conf ?? 0).toFixed(2), side_view: contact.quality?.sideView ?? null },
+      contact_source: contact.source, measurements: m, ball_path: ballPath, contact: contact.area,
+      quality: { pose: +contact.b.vis.legs.toFixed(2), ball: +(contact.ballAt?.conf ?? 0).toFixed(2), side_view: plant.sideView ?? contact.quality?.sideView ?? null },
     }
   }
 
@@ -235,8 +258,8 @@ export function createShootingDetector({ rules, kickingFoot = 'auto' }) {
         if (struck || estimated) {
           const c = struck ? plant.nearestFrame : plant.peakFrame
           const source = struck ? 'ball' : 'estimated'
-          const { measurements, ballAt } = measure(c, source)
-          contact = { t: c.t, L: c.L, b: c.b, quality: c.quality, source, measurements, ballAt }
+          const { measurements, ballAt, contact: area } = measure(c, source)
+          contact = { t: c.t, L: c.L, b: c.b, quality: c.quality, source, measurements, ballAt, area }
           follow = { groundY: c.b[plant.support].ankle.y, minKickY: c.b[plant.kick].ankle.y, kickVis: [], ballPts: [] }
           setPhase('follow_through', d.t)
           out.event = 'contact'
@@ -268,6 +291,8 @@ export function createShootingDetector({ rules, kickingFoot = 'auto' }) {
         break
     }
     prev = d
+    recent.push(d)
+    recent = recent.filter((f) => d.t - f.t <= 1.0)
     out.phase = phase
     return out
   }

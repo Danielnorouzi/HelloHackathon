@@ -58,6 +58,15 @@ def build_context(skill: str, attempts: list[dict], summary: dict | None = None)
         last = attempts[-1]
         lines.append("Latest attempt:")
         lines += ["- " + describe_measure(k, last.get("measurements", {}).get(k), d, tracking) for k, d in defs.items()]
+        contact = last.get("contact")
+        if contact and contact.get("target"):
+            target = contact["target"]
+            if contact.get("zone") and (contact.get("conf") or 0) >= coach_rules.rules()["confidence"]["measurement_min"]:
+                verdict = "correct" if contact["zone"] == target else "not the target"
+                lines.append(f"- Contact area (estimated): {contact['zone']}, target {target} ({verdict}, "
+                             f"confidence {contact.get('conf', 0):.0%})")
+            else:
+                lines.append(f"- Contact area: not judged (kicking foot not clear), target {target}")
         ev = coach_rules.evaluate(skill, last.get("measurements", {}))
         if ev["corrections"]:
             lines.append("Rule-based correction for the latest attempt: " + ev["corrections"][0]["text"])

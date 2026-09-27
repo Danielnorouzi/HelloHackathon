@@ -29,9 +29,18 @@ class MeasureIn(BaseModel):
     reason: str | None = Field(None, max_length=40)
 
 
+class ContactIn(BaseModel):
+    """Which part of the boot met the ball (shooting), estimated in the browser."""
+    zone: Literal["laces", "inside", "outside", "toe", "side"] | None = None
+    target: Literal["laces", "inside", "outside"] | None = None
+    conf: float = Field(0.0, ge=0.0, le=1.0)
+    reason: str | None = Field(None, max_length=40)
+
+
 class AttemptIn(BaseModel):
     measurements: dict[str, MeasureIn] = {}
     quality: dict[str, float | bool | str | None] = {}
+    contact: ContactIn | None = None
 
 
 class SessionStartIn(BaseModel):
@@ -48,7 +57,8 @@ def clean_attempts(skill: str, attempts: list[AttemptIn]) -> list[dict]:
     """Keep only the measurement keys this skill defines, as plain dicts."""
     known = coach_rules.skill_rules(skill)["measurements"].keys()
     return [{"measurements": {k: m.model_dump() for k, m in a.measurements.items() if k in known},
-             "quality": {k: v for k, v in a.quality.items() if isinstance(v, (int, float, bool)) or v is None}}
+             "quality": {k: v for k, v in a.quality.items() if isinstance(v, (int, float, bool)) or v is None},
+             "contact": a.contact.model_dump() if a.contact and skill == "shooting" else None}
             for a in attempts]
 
 
@@ -86,7 +96,7 @@ def end_session(session_id: int, body: SessionEndIn, narrate: bool = True):
         summary["narrative"] = assistant.narrative(summary) if narrate and attempts else None
         for i, a in enumerate(attempts):
             db.add(CoachAttempt(session_id=row.id, idx=i, measurements_json=json.dumps(a["measurements"]),
-                                quality_json=json.dumps(a["quality"])))
+                                quality_json=json.dumps({**a["quality"], "contact": a["contact"]})))
         row.ended_at = utcnow()
         row.attempts_count = len(attempts)
         row.summary_json = json.dumps(summary)

@@ -10,6 +10,8 @@
 //   • After a correction, a fixed measurement earns one short positive cue (with its own cooldown).
 //   • Nothing is spoken within `min_gap_ms` of the last cue, or while the player or coach is talking;
 //     the best candidate waits (up to `pending_ttl_ms`) and a better one can replace it.
+// Shooting also passes per-shot contact-area feedback (coach/contact.js), which takes priority when
+// the wrong part of the boot was used.
 // All methods take `now` (ms) explicitly, so the behaviour is deterministic and testable.
 import { evaluateAttempt, mainTrackingIssue } from './rules'
 
@@ -66,6 +68,7 @@ export function createCueScheduler(rules, skill) {
   }
 
   function commit(cue, now) {
+    if (cue.also) commit(cue.also, now)
     const s = perKey.get(cue.key) ?? { lastAt: -Infinity, count: 0 }
     perKey.set(cue.key, { lastAt: now, count: s.count + 1 })
     lastSpokenAt = now
@@ -79,12 +82,26 @@ export function createCueScheduler(rules, skill) {
 
   return {
     /** Evaluate a finished attempt. Returns { result, cue } where cue is to be spoken now (or null). */
-    onAttempt(attempt, now) {
+    onAttempt(attempt, now, contact = null) {
       const result = evaluateAttempt(skill, attempt.measurements, rules)
       recent.push(result.corrections.map((c) => c.key))
       if (recent.length > cfg.confirm_window) recent.shift()
       const trackingIssue = mainTrackingIssue(result, rules)
-      const cue = pick(result, trackingIssue, now)
+      let cue = pick(result, trackingIssue, now)
+      // Contact-area feedback (shooting): a wrong contact is said first, on its own; a correct one is
+      // confirmed and, if there's also a technique correction, both go in one sentence.
+      if (contact?.speak) {
+        const zones = [contact.target]
+        const text = contact.status === 'unclear' ? contact.spokenText : contact.text
+        const contactCue = { key: `contact:${contact.status}`, kind: contact.status === 'correct' ? 'positive' : contact.status === 'incorrect' ? 'correction' : 'tracking',
+          priority: contact.status === 'incorrect' ? 5 : 1, zones, contact, text }
+        if (contact.status === 'correct' && cue?.kind === 'correction') {
+          cue = { ...contactCue, key: `contact:correct+${cue.key}`, text: `${contact.text} ${cue.text}`,
+            zones: cue.zones?.length ? cue.zones : zones, also: cue }  // the correction is recorded when spoken
+        } else {
+          cue = contactCue
+        }
+      }
       if (!cue) return { result, trackingIssue, cue: null }
       if (canSpeak(now)) {
         pending = null

@@ -17,12 +17,13 @@ export default function LiveCoach() {
   const coach = useLiveCoach()
   const [skill, setSkill] = useState('shooting')
   const [kickingFoot, setKickingFoot] = useState('auto')
+  const [shotType, setShotType] = useState('driven')
   const [voiceOn, setVoiceOn] = useState(true)
   const fileInput = useRef(null)
   const running = coach.status === 'running'
   const busy = coach.status === 'loading' || coach.status === 'ending'
 
-  const start = (file = null) => coach.start({ skill, kickingFoot, file })
+  const start = (file = null) => coach.start({ skill, kickingFoot, shotType, file })
 
   return (
     <div className="space-y-6">
@@ -39,6 +40,7 @@ export default function LiveCoach() {
         <>
           {!running && !busy && (
             <SetupPanel skill={skill} setSkill={setSkill} kickingFoot={kickingFoot} setKickingFoot={setKickingFoot}
+              shotType={shotType} setShotType={setShotType}
               voiceOn={voiceOn} setVoiceOn={(v) => { setVoiceOn(v); coach.setSoundEnabled(v) }}
               capabilities={coach.capabilities} error={coach.error}
               onCamera={() => start()} onFile={() => fileInput.current?.click()} />
@@ -65,9 +67,10 @@ export default function LiveCoach() {
                     {voiceOn ? '🔊 Sound on' : '🔇 Muted'}
                   </button>
                 </div>
-                <Section title="Contact areas" explain="Where the latest hint wants you to strike the ball."
-                  info="Highlighted only when a hint is about which part of the boot to use. The measurements behind those hints are approximate and are withheld when the feet or ball aren't tracked clearly.">
-                  <BootZones zones={coach.zoneCue?.zones} cueText={null} foot={coach.footSide} />
+                <Section title="Contact area" explain={coach.contactTarget ? 'Target part of the boot, and the part you used on your last shot.' : 'Where the latest hint wants you to strike the ball.'}
+                  info="The part of the boot that met the ball is estimated from which way your kicking foot points at contact (3D pose) and how far the toes point down. It's an estimate from one camera: it's withheld when the foot isn't clear, and it works best side-on with your feet in view.">
+                  <BootZones zones={coach.zoneCue?.zones} cueText={null} foot={coach.footSide}
+                    target={coach.contactTarget} last={coach.lastContact} />
                 </Section>
                 <CuePanel cues={coach.cues} onWhy={(cue) => coach.ask({ text: `Why did you say: "${cue.text}"?` })} />
                 <LastAttempt attempts={coach.attempts} skill={skill} />
@@ -81,7 +84,7 @@ export default function LiveCoach() {
   )
 }
 
-function SetupPanel({ skill, setSkill, kickingFoot, setKickingFoot, voiceOn, setVoiceOn, capabilities, error, onCamera, onFile }) {
+function SetupPanel({ skill, setSkill, kickingFoot, setKickingFoot, shotType, setShotType, voiceOn, setVoiceOn, capabilities, error, onCamera, onFile }) {
   const cfg = skillRules(skill)
   return (
     <Section title="1. Choose a skill" explain="The coach watches your body and the ball and speaks one short hint at a time.">
@@ -91,7 +94,8 @@ function SetupPanel({ skill, setSkill, kickingFoot, setKickingFoot, voiceOn, set
             className={`text-left rounded-2xl border p-4 transition ${skill === key ? 'border-accent bg-accent/10' : 'border-line hover:border-muted'}`}>
             <p className="text-2xl">{SKILL_ICONS[key]}</p>
             <p className="font-semibold mt-1">{s.label}</p>
-            <p className="text-xs text-muted mt-1">Checks: {Object.values(s.measurements).map((m) => m.label.toLowerCase()).join(' · ')}</p>
+            <p className="text-xs text-muted mt-1">Checks: {[...(s.shot_types ? ['part of the boot that met the ball (vs your target)'] : []),
+              ...Object.values(s.measurements).map((m) => m.label.toLowerCase())].join(' · ')}</p>
           </button>
         ))}
       </div>
@@ -102,6 +106,14 @@ function SetupPanel({ skill, setSkill, kickingFoot, setKickingFoot, voiceOn, set
           <ul className="space-y-1.5 text-sm text-gray-300 list-disc pl-5">{cfg.setup_tips.map((t) => <li key={t}>{t}</li>)}</ul>
         </div>
         <div className="space-y-4">
+          {skill === 'shooting' && (
+            <div className="text-sm">
+              <span className="block text-xs text-muted mb-1">Shot type (which part of the boot to strike with)</span>
+              <Segmented size="md" value={shotType} onChange={setShotType}
+                options={Object.entries(cfg.shot_types).map(([k, t]) => ({ value: k, label: `${t.label}: ${RULES.zones[t.zone].split(' (')[0].toLowerCase()}` }))} />
+              <p className="text-xs text-muted mt-1">{cfg.shot_types[shotType].instruction} After each shot the coach says which part you used.</p>
+            </div>
+          )}
           {skill === 'shooting' && (
             <div className="text-sm">
               <span className="block text-xs text-muted mb-1">Kicking foot</span>
@@ -263,6 +275,17 @@ function LastAttempt({ attempts, skill }) {
           </tbody>
         </table>
       )}
+      {a?.contactFeedback && (
+        <p className="text-xs mt-2">
+          <span className="text-muted">Contact area: </span>
+          {a.contactFeedback.status === 'unclear'
+            ? <span className="text-yellow-300">not judged ({a.contactFeedback.text.toLowerCase().replace(/\.$/, '')})</span>
+            : <span className={a.contactFeedback.status === 'correct' ? 'text-good' : 'text-orange-400'}>
+                {RULES.zones[a.contactFeedback.detected] ?? 'Side of the foot'}, {a.contactFeedback.status === 'correct' ? 'correct' : `target was ${(RULES.zones[a.contactFeedback.target] ?? '').toLowerCase()}`}
+              </span>}
+          <span className="text-muted"> · {Math.round((a.contactFeedback.conf ?? 0) * 100)}% confidence</span>
+        </p>
+      )}
       {a?.ball_path && <p className="text-xs text-muted mt-2">Ball path in the image: {a.ball_path} (direction only, not a speed).</p>}
       {a?.contact_source === 'estimated' && <p className="text-xs text-yellow-300 mt-2">Contact moment estimated: the ball wasn't visible.</p>}
     </Section>
@@ -307,6 +330,36 @@ function AskCoach({ coach }) {
   )
 }
 
+/** Contact area over the session: target part of the boot, how often it was hit, what else was used. */
+function ContactSummary({ contact }) {
+  const others = Object.entries(contact.zones).filter(([z]) => z !== contact.target).sort((a, b) => b[1] - a[1])
+  const notJudged = contact.shots - contact.judged
+  return (
+    <Section title="Contact area" explain="Which part of the boot met the ball, against the target for this shot type."
+      info="Estimated from which way the kicking foot points at contact and how far the toes point down. Shots where the foot wasn't clear aren't judged.">
+      <div className="flex flex-wrap items-center gap-6">
+        <div>
+          <p className="text-xs text-muted">Target</p>
+          <p className="font-semibold">{RULES.zones[contact.target] ?? contact.target}</p>
+        </div>
+        <div>
+          <p className="text-xs text-muted">On target</p>
+          <p className="font-semibold">
+            {contact.judged ? <>{contact.correct} of {contact.judged} judged shots</> : 'No shot could be judged'}
+          </p>
+        </div>
+        {others.length > 0 && (
+          <div>
+            <p className="text-xs text-muted">Also used</p>
+            <p className="font-semibold text-orange-400">{others.map(([z, n]) => `${RULES.zones[z] ?? 'Side of the foot'} (${n})`).join(', ')}</p>
+          </div>
+        )}
+        {notJudged > 0 && <p className="text-xs text-yellow-300">Not judged on {notJudged} of {contact.shots} (foot not clear at contact).</p>}
+      </div>
+    </Section>
+  )
+}
+
 function SummaryView({ summary, onRestart }) {
   const cfg = skillRules(summary.skill)
   return (
@@ -321,6 +374,7 @@ function SummaryView({ summary, onRestart }) {
       {summary.narrative && (
         <div className="rounded-2xl bg-surface border border-line p-5 text-gray-200 leading-relaxed">💬 {summary.narrative}</div>
       )}
+      {summary.contact && <ContactSummary contact={summary.contact} />}
       <div className="grid lg:grid-cols-3 gap-6">
         <Section title="Strengths" explain="In the target range on most attempts.">
           {summary.strengths.length ? (

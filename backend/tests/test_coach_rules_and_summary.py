@@ -100,3 +100,42 @@ def test_no_drill_without_a_repeated_issue():
 def test_no_drill_when_tracking_was_too_limited():
     s = summarize("shooting", [shot(plant_reason="ball_not_at_contact", lean=None)] * 3)
     assert s["drills"] == [] and "camera setup" in s["drills_note"]
+
+
+# ---------------------------------------------------------------------------
+# Shooting contact area (which part of the boot met the ball, vs the target)
+# ---------------------------------------------------------------------------
+
+def with_contact(zone, target="laces", conf=0.8):
+    return {**shot(plant=0.0, lean=10, follow=1.0), "contact": {"zone": zone, "target": target, "conf": conf, "reason": None}}
+
+
+def test_contact_area_counts_correct_and_wrong_parts():
+    s = summarize("shooting", [with_contact("laces"), with_contact("inside"), with_contact("toe"),
+                               with_contact("inside"), with_contact("laces")])
+    assert s["contact"] == {"target": "laces", "shots": 5, "judged": 5, "correct": 2, "zones": {"laces": 2, "inside": 2, "toe": 1}}
+    c = s["corrections"][0]                                             # the part of the boot comes first
+    assert c["key"] == "contact_laces" and c["text"] == "Strike with your laces."
+    assert "the inside of your foot on 2, your toe on 1" in c["evidence"] and "3 of 5 judged shots" in c["evidence"]
+    assert s["drills"][0]["for"] == "contact_laces" and s["drills"][0]["name"] == "Toes-down laces strikes"
+    assert s["drills"][0]["because"].startswith("Contact area:")
+
+
+def test_mostly_correct_contact_is_a_strength():
+    s = summarize("shooting", [with_contact("inside", "inside")] * 3 + [with_contact("laces", "inside")])
+    assert any(st["measure"] == "contact_area" and "3 of 4 judged shots" in st["text"] for st in s["strengths"])
+    assert all(c["key"] != "contact_inside" for c in s["corrections"])  # one wrong contact in 4 isn't a pattern
+
+
+def test_unclear_contact_is_a_limitation_not_a_judgement():
+    s = summarize("shooting", [with_contact(None, conf=0.2), with_contact(None, conf=0.1), with_contact("laces", conf=0.3),
+                               with_contact("side", "inside")])
+    assert s["contact"]["judged"] == 0 and s["contact"]["correct"] == 0
+    assert all(not c["key"].startswith("contact_") for c in s["corrections"])
+    assert any("Contact area not judged on 4 of 4 shots" in lim for lim in s["limitations"])
+    assert "not measured" in s["limitations"][-1].lower()
+
+
+def test_no_contact_section_without_contact_data():
+    assert summarize("shooting", [shot(plant=0.0, lean=10)] * 2)["contact"] is None
+    assert summarize("dribbling", [])["contact"] is None
