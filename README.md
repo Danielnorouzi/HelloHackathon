@@ -57,7 +57,7 @@ For offline demos run `npm run fetch-models` once in `frontend/` to save the mod
 cd backend && .venv/Scripts/python -m pytest        # rules, summary, isolation from analysis data
 cd frontend && npm test                             # phase detection, rules parity, cue scheduling
 ```
-```
+
 
 
 ### Project structure
