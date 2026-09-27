@@ -57,6 +57,12 @@ For offline demos run `npm run fetch-models` once in `frontend/` to save the mod
 cd backend && .venv/Scripts/python -m pytest        # rules, summary, isolation from analysis data
 cd frontend && npm test                             # phase detection, rules parity, cue scheduling
 ```
+```
+
+**Launch**: start both servers as above, open http://localhost:5173/coach, choose a skill, and press
+*Start camera* (allow camera access). Set the camera side-on for shooting, 4–6 m away, with your whole
+body and the ball in view. Use Chrome or Edge on localhost (camera access needs localhost or https).
+For offline demos run `npm run fetch-models` once in `frontend/` to save the model files locally.
 
 
 
