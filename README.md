@@ -15,6 +15,9 @@ Soccer Scout is our group project for HelloHack 2026. It allows user to search f
 - **OpenAI:** Used for analyzing players data and playstyle, creating workout plans, and live coach.
 - **Google MediaPipe:** Used for body postioning and ball detection in the browser (live Coach). 
 
+## Fast launch using localhost (set up before hand)
+- **Launch**: start both servers as above, open http://localhost:5173/coach, choose a skill, and press
+
 ### Setup
 
 Requirements: Python 3.11+, Node 20+.
@@ -47,22 +50,12 @@ cd backend && .venv/Scripts/python -m uvicorn app.main:app --port 8000   # resta
 cd frontend && npm install && npm run dev            # http://localhost:5173
 
 
-**Launch**: start both servers as above, open http://localhost:5173/coach, choose a skill, and press
-*Start camera* (allow camera access). Set the camera side-on for shooting, 4–6 m away, with your whole
-body and the ball in view. Use Chrome or Edge on localhost (camera access needs localhost or https).
-For offline demos run `npm run fetch-models` once in `frontend/` to save the model files locally.
-
 **Tests**
 ```bash
 cd backend && .venv/Scripts/python -m pytest        # rules, summary, isolation from analysis data
 cd frontend && npm test                             # phase detection, rules parity, cue scheduling
 ```
 ```
-
-**Launch**: start both servers as above, open http://localhost:5173/coach, choose a skill, and press
-*Start camera* (allow camera access). Set the camera side-on for shooting, 4–6 m away, with your whole
-body and the ball in view. Use Chrome or Edge on localhost (camera access needs localhost or https).
-For offline demos run `npm run fetch-models` once in `frontend/` to save the model files locally.
 
 
 
