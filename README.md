@@ -55,7 +55,7 @@ cd frontend && npm install && npm run dev            # http://localhost:5173
 cd backend && .venv/Scripts/python -m pytest        # rules, summary, isolation from analysis data
 cd frontend && npm test                             # phase detection, rules parity, cue scheduling
 ```
-```
+
 
 
 
