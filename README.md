@@ -1,22 +1,19 @@
 # HelloHackathon
 
 ## Description
-Repository for the project at HelloHacks
 
+Soccer Scout is our group project for HelloHack 2026. It allows user to search for a professional player, see a data driven analysis of how they pla and their style, generate a training plan to develop similar abilities and even a live coach to check your form and gives live feedback. 
 
-## SoccerScout
-
-Search a professional player, see a data-driven analysis of how they play, get a game-style
-player card with confidence scores, read an AI scouting report, and generate a training plan
-to develop similar abilities. No video: everything comes from free event data, and every
-rating links back to the numbers behind it.
-
-### Data attribution
+### Player Data attribution
 
 - **StatsBomb Open Data**: event data for La Liga 2004/05–2020/21 (Barcelona matches) and the
   FIFA World Cup 2022. Free for non-commercial use. https://github.com/statsbomb/open-data
-  StatsBomb is credited wherever its data appears in the app.
 - **API-Football**: basic stats for players outside the StatsBomb data (free tier, cached).
+
+## AI and ML models
+
+- **OpenAI:** Used for analyzing players data and playstyle, creating workout plans, and live coach.
+- **Google MediaPipe:** Used for body postioning and ball detection in the browser (live Coach). 
 
 ### Setup
 
@@ -48,7 +45,37 @@ cd backend
 ```bash
 cd backend && .venv/Scripts/python -m uvicorn app.main:app --port 8000   # restart after backend edits (--reload is unreliable on Windows)
 cd frontend && npm install && npm run dev            # http://localhost:5173
+
+
+**Launch**: start both servers as above, open http://localhost:5173/coach, choose a skill, and press
+*Start camera* (allow camera access). Set the camera side-on for shooting, 4–6 m away, with your whole
+body and the ball in view. Use Chrome or Edge on localhost (camera access needs localhost or https).
+For offline demos run `npm run fetch-models` once in `frontend/` to save the model files locally.
+
+**Tests**
+```bash
+cd backend && .venv/Scripts/python -m pytest        # rules, summary, isolation from analysis data
+cd frontend && npm test                             # phase detection, rules parity, cue scheduling
 ```
+```
+
+
+### Project structure
+
+```
+backend/
+  app/            FastAPI app: db, metrics, players, rating, llm, api_football
+  app/coach/      Live Skills Coach API, voice, summary, separate coach database
+  config/         demo players, rating weights, skill-test benchmarks, coach_rules.json
+  tests/          pytest suite (Live Skills Coach)
+  scripts/        preload, verification and cache-warming scripts
+  data/           SQLite database (generated)
+frontend/
+  src/components  pitch visuals and charts
+  src/pages       Home, Players, Player, My Profile, Train, Live Coach
+  src/coach       live vision, skill phases, rules, cue scheduler, voice
+```
+
 
 ### How the pieces work
 
@@ -123,29 +150,4 @@ Question audio is sent once for transcription and not stored.
 **Never measured**: shot power, ball speed, accuracy, distances in metres. They need a calibrated camera
 and a visible target.
 
-**Launch**: start both servers as above, open http://localhost:5173/coach, choose a skill, and press
-*Start camera* (allow camera access). Set the camera side-on for shooting, 4–6 m away, with your whole
-body and the ball in view. Use Chrome or Edge on localhost (camera access needs localhost or https).
-For offline demos run `npm run fetch-models` once in `frontend/` to save the model files locally.
 
-**Tests**
-```bash
-cd backend && .venv/Scripts/python -m pytest        # rules, summary, isolation from analysis data
-cd frontend && npm test                             # phase detection, rules parity, cue scheduling
-```
-
-### Project structure
-
-```
-backend/
-  app/            FastAPI app: db, metrics, players, rating, llm, api_football
-  app/coach/      Live Skills Coach API, voice, summary, separate coach database
-  config/         demo players, rating weights, skill-test benchmarks, coach_rules.json
-  tests/          pytest suite (Live Skills Coach)
-  scripts/        preload, verification and cache-warming scripts
-  data/           SQLite database (generated)
-frontend/
-  src/components  pitch visuals and charts
-  src/pages       Home, Players, Player, My Profile, Train, Live Coach
-  src/coach       live vision, skill phases, rules, cue scheduler, voice
-```
